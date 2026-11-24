@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Name That Song</title>
+<meta name="description" content="A song-guessing game for two.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+
+:root{color-scheme:dark;--bg:#1c0c22;--bg2:#2a1432;--ink:#fbeef3;--muted:#c4a6c8;--paper:#fffaf6;--paperink:#2a1432;--rose:#ff7d93;--gold:#ffd37c;--line:#4a2a55}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#3b1a45 0%,var(--bg) 60%) fixed,var(--bg);color:var(--ink);font:16px/1.55 "DM Sans",system-ui,sans-serif;overflow-x:clip;min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:clamp(20px,4vw,48px) max(4vw,16px) 64px}
+h1,h2{font-family:"Instrument Serif",Georgia,serif;font-weight:400;line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(40px,7vw,64px)}h2{font-size:clamp(26px,4vw,34px);margin-bottom:10px}
+.sub{color:var(--muted);margin:10px 0 0;max-width:60ch}
+.hand{font-family:Caveat,cursive}
+button,.btn{font:inherit;font-weight:700;min-height:44px;padding:10px 20px;border-radius:999px;border:0;background:var(--rose);color:#2a0d1a;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+button.ghost,.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,.btn:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+input[type=text],input[type=date]{font:inherit;font-size:16px;min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:#14081a;color:var(--ink);width:100%}
+input[type=date]{color-scheme:dark}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>input{flex:1 1 180px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:18px}
+.steps{display:grid;gap:14px;margin-top:24px;max-width:640px}
+.step h3{margin:0 0 10px;font-size:15px;color:var(--muted);font-weight:500}
+.seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.seat h3{margin:0 0 8px;font-size:15px;color:var(--muted);font-weight:500}
+.seat .who{font-family:Caveat,cursive;font-size:30px;line-height:1.1}
+.seat.win{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.pt{display:inline-block;background:var(--gold);color:#2a1432;border-radius:999px;padding:2px 10px;font-weight:700;font-size:14px;margin-left:6px}
+.score{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.score .tally{display:flex;gap:18px;font-size:18px}.score b{font-family:"Instrument Serif",serif;font-size:32px;font-weight:400;margin-left:6px;color:var(--gold)}
+.stage{display:grid;place-items:center;margin:8px 0 22px}
+.polaroid{background:var(--paper);padding:14px 14px 0;border-radius:4px;box-shadow:0 30px 60px -20px #000c;transform:rotate(-1.2deg);max-width:min(100%,640px);transition:transform .4s}
+.polaroid img{display:block;max-width:100%;max-height:58vh;min-height:120px;min-width:200px;margin:0 auto;background:#e9e1e6;border-radius:2px;object-fit:contain}
+.polaroid .cap{color:var(--paperink);font-family:Caveat,cursive;font-size:clamp(26px,4vw,36px);text-align:center;padding:8px 6px 12px;min-height:62px}
+.polaroid.rev{transform:rotate(.8deg)}
+.verdict{text-align:center;font-size:18px;margin:16px 0 0}
+.center{text-align:center;margin-top:18px}
+.drop{border:2px dashed var(--line);text-align:center;transition:border-color .2s,background .2s}
+.drop.over{border-color:var(--rose);background:#ff7d9311}
+.bar{height:8px;background:#14081a;border-radius:99px;overflow:hidden;margin-top:12px}.bar i{display:block;height:100%;background:var(--rose);width:0}
+.note{color:var(--muted);font-size:14px}
+.err{color:#ffb4b4;font-size:14px}
+.ok{color:#a8f0c6}
+.link{font-family:ui-monospace,Menlo,monospace;font-size:15px;background:#14081a;border:1px solid var(--line);border-radius:12px;padding:12px;overflow-wrap:anywhere;user-select:all}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#777;margin-right:6px;vertical-align:middle}.dot.on{background:#5be39a}
+.recap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:18px}
+.recap figure{margin:0;background:var(--paper);color:var(--paperink);padding:8px 8px 6px;border-radius:3px}
+.recap img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#ddd}
+.recap figcaption{font-size:13px;line-height:1.35;padding-top:6px}
+.recap .d{font-family:Caveat,cursive;font-size:22px}
+.hide{display:none!important}
+@media(max-width:600px){.seats{grid-template-columns:1fr}.polaroid,.polaroid.rev{transform:none}}
+@media(prefers-reduced-motion:reduce){.polaroid{transition:none}}
+
+textarea{font:inherit;font-size:16px;width:100%;min-height:120px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#14081a;color:var(--ink)}
+input[type=url]{font:inherit;font-size:16px;min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:#14081a;color:var(--ink);width:100%}
+.disc{width:min(68vw,300px);aspect-ratio:1;border-radius:50%;margin:0 auto;position:relative;
+  background:radial-gradient(circle at 50% 50%,#2a1432 0 17%,#0d0510 17.5% 19%,transparent 19.5%),repeating-radial-gradient(circle at 50% 50%,#160a1b 0 2px,#21102a 2px 4px);
+  box-shadow:0 30px 60px -20px #000c,inset 0 0 0 2px #3b1a45}
+.disc::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 30deg,transparent 0 20%,#ffffff14 25%,transparent 30% 70%,#ffffff10 75%,transparent 80%)}
+.label{position:absolute;inset:31%;border-radius:50%;background:var(--rose) center/cover no-repeat;display:grid;place-items:center;color:#2a0d1a;font-family:Caveat,cursive;font-size:28px;overflow:hidden}
+.label::after{content:"";width:10%;aspect-ratio:1;border-radius:50%;background:#1c0c22}
+.spin{animation:spin 3s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.answer{text-align:center;margin-top:18px;min-height:64px}
+.answer .t{font-family:"Instrument Serif",serif;font-size:clamp(26px,4vw,36px);line-height:1.1}
+.answer .a{color:var(--muted)}
+.ctrl{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.tiny{font-size:13px;padding:4px 10px;min-height:32px}
+.wrong{color:#ffb4b4}.right{color:#a8f0c6}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="note" id="conn"></p>
+
+  <div id="vSetup" class="hide">
+    <h1>Name that song</h1>
+    <p class="sub">Paste a Spotify playlist, send a link, and you each hear the same 30-second clip and type the song's title. Get it right, get a point. You can both score.</p>
+    <div class="steps">
+      <div class="card step"><h3>1. Your name</h3><input type="text" id="hName" maxlength="24" placeholder="Your name" aria-label="Your name"></div>
+      <div class="card step"><h3>2. Your playlist</h3>
+        <div class="row"><input type="url" id="plUrl" placeholder="https://open.spotify.com/playlist/…" aria-label="Spotify playlist link"><button id="loadPl">Load</button></div>
+        <p class="note" id="plNote">In Spotify: open the playlist → ••• → Share → Copy link to playlist. The playlist must be public.</p>
+        <details style="margin-top:8px"><summary class="note">Or paste songs as text</summary>
+          <p class="note">One per line, like <i>Song title - Artist</i>.</p>
+          <textarea id="plText" placeholder="Yellow - Coldplay&#10;Tum Hi Ho - Arijit Singh"></textarea>
+          <p><button class="ghost" id="useText">Use these songs</button></p>
+        </details>
+        <p class="ok" id="plOk"></p><p class="err" id="plErr"></p>
+      </div>
+      <div class="card step"><h3>3. Create the game</h3>
+        <div class="row"><input type="number" id="nRounds" min="1" max="30" value="10" style="flex:0 0 90px" aria-label="Songs per game"><span class="note">songs per game</span></div>
+        <p><button id="create" disabled>Create game</button></p>
+        <p class="note" id="createNote">Add your name and a playlist first.</p>
+      </div>
+      <p class="note">Also try <a href="./" style="color:var(--rose)">When was this?</a>, the photo version.</p>
+    </div>
+  </div>
+
+  <div id="vLobby" class="hide">
+    <h1>Send this link</h1>
+    <p class="sub">Whoever opens it joins your game. Keep this tab open while you play.</p>
+    <div class="card" style="margin-top:20px">
+      <div class="link" id="gameLink"></div>
+      <div class="row" style="margin-top:12px"><button id="copy">Copy link</button><span class="note" id="copied"></span></div>
+    </div>
+    <div class="seats" id="lobbySeats"></div>
+    <div class="center" id="lobbyBtns"></div>
+  </div>
+
+  <div id="vJoin" class="hide">
+    <h1>You're invited</h1>
+    <p class="sub">A music game: you'll both hear the same song clip and type its title. Get it right, get a point.</p>
+    <div class="card" style="margin-top:20px;max-width:520px">
+      <div class="row"><input type="text" id="gName" maxlength="24" placeholder="Your name" aria-label="Your name"><button id="join">Join</button></div>
+      <p class="err" id="joinErr"></p>
+    </div>
+  </div>
+
+  <div id="vWait" class="hide"><h1 id="waitTitle">You're in</h1><p class="sub" id="waitSub"></p></div>
+
+  <div id="vGame" class="hide">
+    <div class="score"><div class="note" id="roundLbl"></div><div class="tally" id="tally"></div></div>
+    <div class="disc" id="disc"><div class="label" id="label"></div></div>
+    <div class="ctrl"><button id="play">Play the clip</button><span class="note" id="audioNote"></span></div>
+    <div class="answer" id="answer"></div>
+    <div class="seats" id="cards"></div>
+    <div class="center row" style="justify-content:center" id="gameBtns"></div>
+  </div>
+
+  <div id="vDone" class="hide">
+    <h1 id="doneTitle"></h1>
+    <p class="sub">Every song from this game.</p>
+    <div class="recap" id="recap"></div>
+    <div class="center row" style="justify-content:center" id="doneBtns"></div>
+  </div>
+  <p class="note" style="position:fixed;right:12px;bottom:8px;margin:0;opacity:.8">Songs v1</p>
+</div>
+<audio id="aud" preload="auto"></audio>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const patch=(el,html)=>{if(el._h!==html){el._h=html;el.innerHTML=html;return true}return false};
+const clean=s=>String(s||'').replace(/\s+/g,' ').trim().slice(0,24);
+const txt=(s,n)=>String(s||'').replace(/\s+/g,' ').trim().slice(0,n||120);
+const views=['vSetup','vLobby','vJoin','vWait','vGame','vDone'];
+const show=v=>views.forEach(x=>$('#'+x).classList.toggle('hide',x!==v));
+const connNote=(on,t)=>{$('#conn').innerHTML=t?`<span class="dot${on?' on':''}"></span>${esc(t)}`:''};
+const httpsOk=u=>typeof u==='string'&&/^https:\/\//.test(u)?u:'';
+
+// ================= relay channel (ntfy, end-to-end encrypted) =================
+const NTFY=window.WWT_NTFY||'https://ntfy.sh';
+const te=new TextEncoder(),td=new TextDecoder();
+const b64u=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+const rand=n=>{const a='abcdefghijkmnopqrstuvwxyz23456789',u=crypto.getRandomValues(new Uint8Array(n));return[...u].map(x=>a[x%a.length]).join('')};
+const importKey=raw=>crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);
+async function seal(key,bytes){const iv=crypto.getRandomValues(new Uint8Array(12));const c=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes));const o=new Uint8Array(12+c.length);o.set(iv);o.set(c,12);return o}
+async function open_(key,u){return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.subarray(0,12)},key,u.subarray(12)))}
+function channel(topic,key,me,onMsg,onStatus){
+  let es=null,lastId=null,closed=false,retry=null;const seen=new Set();
+  const encMsg=async o=>'w1.'+b64u(await seal(key,te.encode(JSON.stringify({...o,f:me}))));
+  const handle=async raw=>{
+    let m;try{m=JSON.parse(raw)}catch(_){return}
+    if(!m||m.event!=='message'||seen.has(m.id))return;seen.add(m.id);lastId=m.id;
+    const txt=String(m.message||'');if(!txt.startsWith('w1.'))return;
+    let d;try{d=JSON.parse(td.decode(await open_(key,unb64u(txt.slice(3)))))}catch(_){return}
+    if(!d||typeof d!=='object'||d.f===me)return;
+    const att=m.attachment&&typeof m.attachment.url==='string'?m.attachment.url:null;
+    onMsg(d,att);
+  };
+  const connect=()=>{
+    if(closed)return;
+    es=new EventSource(`${NTFY}/${topic}/sse`+(lastId?`?since=${encodeURIComponent(lastId)}`:''));
+    es.onopen=()=>onStatus(true);
+    es.onmessage=ev=>handle(ev.data);
+    es.addEventListener('message',()=>{});
+    es.onerror=()=>{onStatus(false);try{es.close()}catch(_){}clearTimeout(retry);retry=setTimeout(connect,2500)};
+  };
+  connect();
+  const post=async(url,opts)=>{for(let i=0;i<3;i++){try{const r=await fetch(url,opts);if(r.ok)return r;if(r.status===429)throw Object.assign(new Error('limit'),{limit:true})}catch(e){if(e.limit)throw e}await new Promise(r=>setTimeout(r,800*(i+1)))}throw new Error('send failed')};
+  return{
+    send:async o=>{await post(`${NTFY}/${topic}`,{method:'POST',body:await encMsg(o)})},
+    sendFile:async(o,bytes)=>{const msg=await encMsg(o);const r=await post(`${NTFY}/${topic}?filename=p.bin&message=${encodeURIComponent(msg)}`,{method:'PUT',body:await seal(key,bytes)});
+      try{const j=await r.json();return j?.attachment?.url||null}catch(_){return null}},
+    close(){closed=true;clearTimeout(retry);try{es&&es.close()}catch(_){}}
+  };
+}
+const fileOk=u=>typeof u==='string'&&u.startsWith(NTFY+'/file/');
+async function fetchPhoto(key,url){const r=await fetch(url);if(!r.ok)throw new Error('photo');const b=await open_(key,new Uint8Array(await r.arrayBuffer()));return URL.createObjectURL(new Blob([b],{type:'image/jpeg'}))}
+const limitMsg='The free message service says we\u2019ve hit today\u2019s limit for this connection. Try again in a few minutes.';
+
+
+// ================= answer matching =================
+function norm(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+    .replace(/\(.*?\)|\[.*?\]/g,' ').replace(/\s[-–—]\s.*$/,' ').replace(/\b(feat|ft|featuring)\b.*$/,' ')
+    .replace(/&/g,' and ').replace(/[^a-z0-9ऀ-ॿ]+/g,' ').replace(/\b(the|a|an)\b/g,' ').replace(/\s+/g,' ').trim();
+}
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function matches(guess,title){
+  const g=norm(guess),t=norm(title);if(!g||!t)return false;if(g===t)return true;
+  const sim=1-lev(g,t)/Math.max(g.length,t.length);
+  return sim>=0.8||(t.length>=8&&g.length>=6&&t.startsWith(g)&&g.length/t.length>=0.6);
+}
+
+// ================= shared game view =================
+let vm=null,drafts={},curAudio='';
+const aud=$('#aud');
+function setAudio(u){if(u!==curAudio){curAudio=u;aud.pause();$('#audioNote').textContent='';if(u){aud.src=u;aud.load()}else aud.removeAttribute('src');$('#disc').classList.remove('spin')}}
+aud.addEventListener('play',()=>$('#disc').classList.add('spin'));
+['pause','ended'].forEach(e=>aud.addEventListener(e,()=>$('#disc').classList.remove('spin')));
+aud.addEventListener('error',()=>{if(curAudio)$('#audioNote').textContent='This clip won’t play here. Make your best guess, or type "pass".'});
+function playClip(){if(!curAudio)return;$('#audioNote').textContent='';aud.currentTime=0;aud.play().catch(()=>{$('#audioNote').textContent='Tap Play to hear it.'})}
+function renderGame(){
+  if(!vm)return;if(vm.phase==='done'){renderDone();return}
+  show('vGame');
+  const r=vm.round,x=vm.reveal,me=vm.me,other=me==='a'?'b':'a';
+  $('#roundLbl').textContent=`Song ${r+1} of ${vm.total}`;
+  patch($('#tally'),`<span>${esc(vm.names.a)}<b>${vm.scores.a}</b></span><span>${esc(vm.names.b)}<b>${vm.scores.b}</b></span>`);
+  setAudio(vm.audio||'');
+  $('#play').disabled=!vm.audio;$('#play').textContent=vm.audio?'Play the clip':'Loading the song…';
+  const lab=$('#label');
+  if(x&&x.art){lab.style.backgroundImage=`url("${encodeURI(x.art)}")`;lab.textContent=''}else{lab.style.backgroundImage='';lab.textContent=''}
+  patch($('#answer'),x?`<div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist)}</div>`:`<div class="note">Listen, then type the song's title. Not sure? Type your best guess or "pass".</div>`);
+  const card=k=>{
+    const mine=k===me,nm=vm.names[k]||'';let body;
+    if(x){const g=k==='a'?x.ga:x.gb,ok=k==='a'?x.ca:x.cb;
+      body=`<div class="hand" style="font-size:28px">${esc(g||'(no guess)')}</div><div class="${ok?'right':'wrong'}">${ok?'Correct <span class="pt">+1</span>':'Not this time'}</div>${isHost?`<button class="ghost tiny" data-flip="${k}" style="margin-top:8px">${ok?'Actually, count it wrong':'Actually, count it right'}</button>`:''}`}
+    else if(vm.locked[k])body=`<div class="hand" style="font-size:28px">Locked in</div><div class="note">${mine&&vm.myGuess?'You said “'+esc(vm.myGuess)+'”. ':''}Hidden until you've both answered.</div>`;
+    else if(mine)body=`<div class="row"><input type="text" id="gIn" maxlength="80" placeholder="Song title" aria-label="Your guess" autocomplete="off"><button data-lock>Lock in</button></div><div class="err" id="gErr"></div>`;
+    else body=`<div class="note">Still thinking…</div>`;
+    const win=x&&(k==='a'?x.ca:x.cb);
+    return `<div class="card seat${win?' win':''}"><h3>${esc(nm)}${mine?' (you)':''}</h3>${body}</div>`;
+  };
+  if(patch($('#cards'),card(me)+card(other))){const i=$('#gIn');if(i)i.value=drafts[vm.audio||r]||''}
+  patch($('#gameBtns'),x?`<button data-next="${r+1}">${r+1>=vm.total?'See the results':'Next song'}</button>`:'');
+}
+function renderDone(){
+  show('vDone');setAudio('');
+  const A=vm.scores.a,B=vm.scores.b;
+  $('#doneTitle').textContent=A===B?`It's a tie, ${A} to ${B}.`:`${A>B?vm.names.a:vm.names.b} wins, ${Math.max(A,B)} to ${Math.min(A,B)}.`;
+  patch($('#recap'),vm.results.map(x=>x?`<figure>${x.art?`<img src="${esc(x.art)}" alt="" loading="lazy">`:''}<figcaption><div class="d">${esc(x.title)}</div>${esc(x.artist)}<br>${esc(vm.names.a)}: ${x.ca?'✓':'✗'} · ${esc(vm.names.b)}: ${x.cb?'✓':'✗'}</figcaption></figure>`:'').join(''));
+  patch($('#doneBtns'),isHost?`<button data-again>Play again</button><button class="ghost" data-newlink>New game link</button><button class="ghost" data-setup>Change playlist</button>`:`<p class="note">Waiting for ${esc(vm.names.a)} to start another game.</p>`);
+}
+document.addEventListener('input',e=>{if(e.target.id==='gIn'&&vm)drafts[vm.audio||vm.round]=e.target.value});
+document.addEventListener('keydown',e=>{if(e.target.id==='gIn'&&e.key==='Enter')document.querySelector('[data-lock]')?.click()});
+$('#play').addEventListener('click',playClip);
+
+// ================= playlist loading =================
+const PROXIES=[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)];
+async function viaProxy(u){
+  let last;for(const p of (window.SONGS_PROXIES||PROXIES)){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);const r=await fetch(p(u),{signal:c.signal});clearTimeout(t);if(r.ok){const s=await r.text();if(s.length>500)return s}}catch(e){last=e}}
+  throw last||new Error('proxy');
+}
+async function loadSpotify(url){
+  const m=String(url).match(/playlist[/:]([A-Za-z0-9]{10,40})/);if(!m)throw new Error('That doesn’t look like a Spotify playlist link.');
+  const html=await viaProxy('https://open.spotify.com/embed/playlist/'+m[1]);
+  const j=html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if(!j)throw new Error('Spotify didn’t send the song list. Is the playlist public?');
+  const data=JSON.parse(j[1]);
+  const ent=data?.props?.pageProps?.state?.data?.entity;const list=ent?.trackList||[];
+  const tracks=list.map(t=>({title:txt(t.title),artist:txt(t.subtitle),preview:httpsOk(t.audioPreview?.url)})).filter(t=>t.title);
+  if(!tracks.length)throw new Error('Couldn’t find any songs in that playlist.');
+  return{name:txt(ent?.name||ent?.title||'your playlist',60),tracks};
+}
+function parseText(s){
+  return String(s).split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(/\s+[-–—]\s+|\s+by\s+/i);return{title:txt(p[0]),artist:txt(p.slice(1).join(' ')),preview:''}}).filter(t=>t.title);
+}
+let jsonpN=0;
+function itunes(term){
+  return new Promise(res=>{
+    if(window.SONGS_ITUNES)return res(window.SONGS_ITUNES(term));
+    const cb='__it'+(++jsonpN),s=document.createElement('script');let done=false;
+    const fin=v=>{if(done)return;done=true;delete window[cb];s.remove();res(v)};
+    window[cb]=d=>{const r=(d&&d.results||[]).find(x=>x.previewUrl)||null;fin(r)};
+    s.src='https://itunes.apple.com/search?media=music&entity=song&limit=5&term='+encodeURIComponent(term)+'&callback='+cb;
+    s.onerror=()=>fin(null);setTimeout(()=>fin(null),8000);document.head.appendChild(s);
+  });
+}
+async function resolveTrack(t){
+  if(t.res)return t.res;
+  const it=await itunes((t.title+' '+t.artist).trim());
+  const art=it&&httpsOk(String(it.artworkUrl100||'').replace(/100x100bb/,'600x600bb'));
+  const audio=t.preview||(it&&httpsOk(it.previewUrl))||'';
+  t.res={audio,art:art||'',title:t.title,artist:t.artist||(it&&txt(it.artistName))||''};
+  return t.res;
+}
+
+// ================= HOST =================
+let isHost=false,H={tracks:[],plName:'',ch:null,key:null,topic:null,guest:'',gid:null,game:null,used:new Set(),lastSent:''};
+function setTracks(tr,name){
+  H.tracks=tr;H.plName=name;H.used.clear();
+  const withPrev=tr.filter(t=>t.preview).length;
+  $('#plOk').textContent=`${tr.length} songs loaded from ${name}.`+(tr.length&&withPrev<tr.length?' Clips for the rest will be looked up as you play; any without a clip are skipped.':'');
+  $('#plErr').textContent='';readyCheck();
+}
+function readyCheck(){const ok=H.tracks.length>0&&clean($('#hName').value);$('#create').disabled=!ok;$('#createNote').textContent=ok?'You’ll get a link to send.':'Add your name and a playlist first.'}
+$('#loadPl').addEventListener('click',async()=>{
+  const b=$('#loadPl');b.disabled=true;$('#plErr').textContent='';$('#plOk').textContent='Loading the playlist…';
+  try{const p=await loadSpotify($('#plUrl').value.trim());setTracks(p.tracks,p.name)}
+  catch(e){$('#plOk').textContent='';$('#plErr').textContent=(e&&e.message&&!/proxy|fetch|abort/i.test(e.message)?e.message:'Couldn’t load it automatically.')+' You can paste the songs as text instead (below).';
+    const d=document.querySelector('details');if(d)d.open=true}
+  finally{b.disabled=false}
+});
+$('#useText').addEventListener('click',()=>{const tr=parseText($('#plText').value);if(!tr.length){$('#plErr').textContent='Add at least one song, one per line.';return}setTracks(tr,'your list')});
+$('#hName').addEventListener('input',readyCheck);
+
+function hostVM(){
+  const g=H.game,r=g.round;
+  const res=g.picks.map((_,i)=>result(i));const sc={a:0,b:0};res.forEach(x=>{if(x){sc.a+=x.ca?1:0;sc.b+=x.cb?1:0}});
+  return{names:{a:clean($('#hName').value)||'Host',b:H.guest||'Guest'},round:r,total:g.picks.length,phase:g.phase,audio:g.res[r]?.audio||'',
+    locked:{a:g.guesses[r+'a']!==undefined,b:g.guesses[r+'b']!==undefined},reveal:g.phase==='play'?res[r]:null,scores:sc,results:g.phase==='done'?res:[]};
+}
+function result(r){
+  const g=H.game,t=g.res[r],ga=g.guesses[r+'a'],gb=g.guesses[r+'b'];
+  if(!t||ga===undefined||gb===undefined)return null;
+  const ca=g.flip[r+'a']??matches(ga,t.title),cb=g.flip[r+'b']??matches(gb,t.title);
+  return{title:t.title,artist:t.artist,art:t.art,ga,gb,ca,cb};
+}
+function guestVM(){const m=hostVM();return{...m,myGuess:H.game.guesses[m.round+'b']??null}}
+function hostSync(){
+  if(!H.game){renderLobby();return}
+  const m=hostVM();vm={...m,me:'a',myGuess:H.game.guesses[m.round+'a']??null};renderGame();
+  if(H.gid&&H.game.res[H.game.round]){const out=guestVM(),s=JSON.stringify(out);if(s!==H.lastSent){H.lastSent=s;H.ch.send({t:'state',vm:out}).catch(e=>{if(e.limit)connNote(false,limitMsg)})}}
+}
+async function prepRound(r){
+  const g=H.game;
+  while(!g.res[r]){
+    const t=H.tracks[g.picks[r]];const res=await resolveTrack(t).catch(()=>null);
+    if(H.game!==g)return;
+    if(res&&res.audio){g.res[r]=res;break}
+    const pool=H.tracks.map((_,i)=>i).filter(i=>!g.picks.includes(i)&&!H.tracks[i].dead);t.dead=true;
+    if(!pool.length){g.picks.splice(r);if(r===0){connNote(false,'None of these songs have playable clips. Try another playlist.');H.game=null;renderLobby();return}g.phase='done';hostSync();return}
+    g.picks[r]=pool[Math.floor(Math.random()*pool.length)];
+  }
+  if(r===g.round)hostSync();
+  if(r+1<g.picks.length)resolveTrack(H.tracks[g.picks[r+1]]).catch(()=>{});
+}
+function newGame(){
+  const n=Math.max(1,Math.min(30,Number($('#nRounds').value)||10));
+  let pool=H.tracks.map((_,i)=>i).filter(i=>!H.used.has(i)&&!H.tracks[i].dead);
+  if(pool.length<n){H.used.clear();pool=H.tracks.map((_,i)=>i).filter(i=>!H.tracks[i].dead)}
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  const picks=pool.slice(0,n);picks.forEach(i=>H.used.add(i));
+  H.game={picks,round:0,guesses:{},flip:{},phase:'play',res:{}};drafts={};H.lastSent='';
+  vm={...hostVMsafe(),me:'a'};renderGame();prepRound(0);
+}
+function hostVMsafe(){return{names:{a:clean($('#hName').value)||'Host',b:H.guest||'Guest'},round:0,total:H.game.picks.length,phase:'play',audio:'',locked:{a:false,b:false},reveal:null,scores:{a:0,b:0},results:[],myGuess:null}}
+function renderLobby(){
+  show('vLobby');const me=clean($('#hName').value)||'You';
+  patch($('#lobbySeats'),`<div class="card seat"><h3>Host</h3><div class="who">${esc(me)}</div><p class="note">That's you.</p></div><div class="card seat"><h3>Guest</h3>${H.guest?`<div class="who">${esc(H.guest)}</div><p class="note ok">Joined and ready.</p>`:`<div class="who" style="font-size:26px">Waiting for your date…</div><p class="note">They'll show up here once they open the link and tap Join.</p>`}</div>`);
+  patch($('#lobbyBtns'),`<button data-start ${H.guest?'':'disabled'}>Start the game</button><p class="note">${H.tracks.length} songs, ${Math.min(H.tracks.length,Number($('#nRounds').value)||10)} per game.</p><p><button class="ghost" data-setup>Change playlist</button></p>`);
+}
+async function makeGame(){
+  if(H.ch)H.ch.close();H.guest='';H.gid=null;H.game=null;H.lastSent='';
+  H.topic='wwt'+rand(18);const raw=crypto.getRandomValues(new Uint8Array(16));H.key=await importKey(raw);
+  $('#gameLink').textContent=location.origin+location.pathname+'#'+H.topic+'.'+b64u(raw);$('#copied').textContent='';
+  connNote(false,'Setting up your game link…');
+  H.ch=channel(H.topic,H.key,'h',onGuest,on=>connNote(on,on?(H.guest?`${H.guest} is connected.`:'Game link is live.'):'Reconnecting…'));
+  renderLobby();
+}
+function onGuest(d){
+  if(d.t==='hello'&&typeof d.f==='string'){
+    H.gid=d.f;H.guest=clean(d.name)||'Guest';H.lastSent='';connNote(true,`${H.guest} is connected.`);
+    if(!H.game){H.ch.send({t:'lobby',host:clean($('#hName').value)||'Host'}).catch(()=>{});renderLobby();return}
+    hostSync();return}
+  if(d.f!==H.gid)return;const g=H.game;if(!g)return;
+  if(d.t==='guess'&&g.phase==='play'&&d.round===g.round&&typeof d.text==='string'&&g.guesses[g.round+'b']===undefined){g.guesses[g.round+'b']=txt(d.text,80);hostSync()}
+  if(d.t==='next')advance(d.round);
+}
+function advance(to){
+  const g=H.game;if(!g||g.phase!=='play'||to!==g.round+1||!result(g.round))return;
+  if(to>=g.picks.length){g.phase='done';hostSync();return}
+  g.round=to;hostSync();prepRound(to);
+}
+$('#create').addEventListener('click',()=>{isHost=true;try{localStorage.setItem('wwt-name',clean($('#hName').value))}catch(_){}makeGame()});
+const selectLink=()=>{const r=document.createRange();r.selectNodeContents($('#gameLink'));const s=getSelection();s.removeAllRanges();s.addRange(r)};
+$('#copy').addEventListener('click',()=>{const t=$('#gameLink').textContent;
+  try{navigator.clipboard.writeText(t).then(()=>{$('#copied').textContent='Copied. Send it to your date.'},()=>{selectLink();$('#copied').textContent='Press Ctrl/Cmd+C to copy.'})}catch(_){selectLink()}});
+window.addEventListener('beforeunload',e=>{if(isHost&&H.game){e.preventDefault();e.returnValue=''}});
+
+// ================= GUEST =================
+let G={topic:null,key:null,ch:null,id:'g'+rand(10),name:'',host:'',heard:false,helloT:null,tries:0};
+function guestJoin(){
+  $('#joinErr').textContent='';connNote(false,'Connecting to the game…');if(G.ch)G.ch.close();G.heard=false;G.tries=0;
+  G.ch=channel(G.topic,G.key,G.id,onHost,on=>{connNote(on,on?(G.heard?'Connected.':'Finding the host…'):'Reconnecting…');if(on&&!G.heard)sayHello()});
+}
+function sayHello(){
+  clearTimeout(G.helloT);if(G.heard)return;
+  if(G.tries++>=6){connNote(false,'');show(vm?'vGame':'vJoin');$('#join').disabled=false;$('#joinErr').textContent='Can’t reach the host. They need to keep the game open on their device. Ask them to check, then tap Join again.';return}
+  G.ch.send({t:'hello',name:G.name}).catch(e=>{if(e.limit)connNote(false,limitMsg)});G.helloT=setTimeout(sayHello,6000);
+}
+function onHost(d){
+  if(d.f!=='h')return;
+  if(!G.heard){G.heard=true;clearTimeout(G.helloT);connNote(true,'Connected.')}
+  if(d.t==='lobby'){G.host=clean(d.host)||'Your date';if(!vm){show('vWait');$('#waitSub').textContent=`Waiting for ${G.host} to start the game. Turn your sound on and keep this page open.`}}
+  if(d.t==='state'&&d.vm){const prev=vm?vm.round:-1;vm=sanitize(d.vm);if(vm.round!==prev)drafts={...drafts};renderGame()}
+}
+function sanitize(v){
+  const n=x=>Number.isFinite(+x)?+x:0;
+  const rv=x=>x&&typeof x.title==='string'?{title:txt(x.title),artist:txt(x.artist),art:httpsOk(x.art),ga:txt(x.ga,80),gb:txt(x.gb,80),ca:!!x.ca,cb:!!x.cb}:null;
+  return{me:'b',names:{a:clean(v.names?.a)||'Host',b:clean(v.names?.b)||'You'},round:n(v.round),total:n(v.total)||1,phase:v.phase==='done'?'done':'play',audio:httpsOk(v.audio),
+    locked:{a:!!v.locked?.a,b:!!v.locked?.b},myGuess:typeof v.myGuess==='string'?txt(v.myGuess,80):null,reveal:rv(v.reveal),scores:{a:n(v.scores?.a),b:n(v.scores?.b)},results:Array.isArray(v.results)?v.results.map(rv):[]};
+}
+$('#join').addEventListener('click',()=>{const nm=clean($('#gName').value);if(!nm){$('#gName').focus();return}G.name=nm;try{localStorage.setItem('wwt-gname',nm)}catch(_){}$('#join').disabled=true;guestJoin()});
+$('#gName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#join').click()});
+
+// ================= shared clicks =================
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
+  if('lock' in d){const v=txt($('#gIn')?.value,80);if(!v){$('#gErr').textContent='Type a title, or "pass".';return}
+    if(isHost){const g=H.game;if(g&&g.guesses[g.round+'a']===undefined){g.guesses[g.round+'a']=v;hostSync()}}
+    else{t.disabled=true;G.ch.send({t:'guess',round:vm.round,text:v}).then(()=>{vm={...vm,locked:{...vm.locked,b:true},myGuess:v};renderGame()},er=>{t.disabled=false;$('#gErr').textContent=er.limit?limitMsg:'Didn’t send. Check your internet and try again.'})}}
+  if(d.flip&&isHost){const g=H.game,k=d.flip,r=g.round,x=result(r);if(x){g.flip[r+k]=!(k==='a'?x.ca:x.cb);hostSync()}}
+  if(d.next){const to=Number(d.next);if(isHost)advance(to);else{t.disabled=true;G.ch.send({t:'next',round:to}).catch(()=>{t.disabled=false})}}
+  if('start' in d||'again' in d)newGame();
+  if('newlink' in d)makeGame();
+  if('setup' in d)show('vSetup');
+});
+
+// ================= boot =================
+(async()=>{
+  try{$('#hName').value=localStorage.getItem('wwt-name')||'';$('#gName').value=localStorage.getItem('wwt-gname')||''}catch(_){}
+  if(!window.crypto?.subtle){show('vSetup');connNote(false,'Open this page over https to play.');return}
+  const m=(location.hash||'').slice(1).match(/^(wwt[a-z0-9]{18})\.([A-Za-z0-9_-]{22})$/);
+  if(m){G.topic=m[1];try{G.key=await importKey(unb64u(m[2]))}catch(_){}show('vJoin')}else{show('vSetup');readyCheck()}
+})();
+window.addEventListener('hashchange',()=>location.reload());
+}
+</script>
+</body>
+</html>
