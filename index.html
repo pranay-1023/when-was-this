@@ -62,7 +62,7 @@ input[type=date]{color-scheme:dark}
 <body>
 <div class="wrap">
   <p class="note" id="conn"></p>
-  <p class="note" style="position:fixed;right:12px;bottom:8px;margin:0;opacity:.8">Version 2</p>
+  <p class="note" style="position:fixed;right:12px;bottom:8px;margin:0;opacity:.8">Version 3</p>
 
   <!-- HOST SETUP -->
   <div id="vSetup" class="hide">
@@ -71,7 +71,7 @@ input[type=date]{color-scheme:dark}
     <div class="steps">
       <div class="card step"><h3>1. Your name</h3><input type="text" id="hName" maxlength="24" placeholder="Your name" aria-label="Your name"></div>
       <div class="card step drop" id="drop"><h3>2. Your photos</h3>
-        <p style="margin:0 0 12px">Drop a folder or a pile of photos here.</p>
+        <p style="margin:0 0 12px">Drop a folder or a pile of photos here. Screenshots are left out automatically.</p>
         <div class="row" style="justify-content:center">
           <label class="btn">Choose photos<input id="pickFiles" type="file" accept="image/*,.heic,.heif" multiple class="hide"></label>
           <label class="btn ghost">Choose a folder<input id="pickDir" type="file" webkitdirectory multiple class="hide"></label>
@@ -262,7 +262,9 @@ const limitMsg='The free message service says we’ve hit today’s limit for th
 // ================= HOST =================
 let isHost=false,H={photos:[],seen:new Set(),ch:null,key:null,topic:null,guest:'',gid:null,game:null,used:new Set(),lastSent:''};
 async function addFiles(list){
-  const files=list.filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
+  const isShot=f=>f.type==='image/png'||/\.png$/i.test(f.name)||/screen ?shot/i.test(f.name);
+  const imgsIn=list.filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
+  const shots=imgsIn.filter(isShot).length,files=imgsIn.filter(f=>!isShot(f));
   let noDate=0,done=0;$('#prog').classList.remove('hide');$('#upErr').textContent='';
   let i=0;const worker=async()=>{while(i<files.length){const f=files[i++];try{
     const key=f.name+'|'+f.size;if(H.seen.has(key))continue;
@@ -270,7 +272,7 @@ async function addFiles(list){
     H.seen.add(key);H.photos.push({file:f,date,name:f.name});
   }catch(_){noDate++}finally{done++;$('#barFill').style.width=(done/files.length*100)+'%';libText()}}};
   await Promise.all([worker(),worker(),worker(),worker()]);
-  const skipped=list.length-files.length,msgs=[];
+  const skipped=list.length-imgsIn.length,msgs=[];if(shots)msgs.push(`${shots} screenshots were left out.`);
   if(noDate)msgs.push(`${noDate} had no date and were skipped.`);if(skipped)msgs.push(`${skipped} videos or other files were ignored.`);
   $('#upErr').textContent=msgs.join(' ');libText();
 }
