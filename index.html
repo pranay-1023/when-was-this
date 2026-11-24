@@ -62,7 +62,7 @@ input[type=date]{color-scheme:dark}
 <body>
 <div class="wrap">
   <p class="note" id="conn"></p>
-  <p class="note" style="position:fixed;right:12px;bottom:8px;margin:0;opacity:.8">Version 3</p>
+  <p class="note" style="position:fixed;right:12px;bottom:8px;margin:0;opacity:.8">Version 4</p>
 
   <!-- HOST SETUP -->
   <div id="vSetup" class="hide">
@@ -206,6 +206,10 @@ function exifFrom(buf){
   return m?`${m[1]}-${m[2]}-${m[3]}`:null;
 }
 async function exifDate(f){let d=exifFrom(await f.slice(0,262144).arrayBuffer());if(!d&&f.size>262144)d=exifFrom(await f.arrayBuffer());return d}
+const validYMD=(y,m,d)=>{y=+y;m=+m;d=+d;const now=new Date().getFullYear();return y>=1990&&y<=now&&m>=1&&m<=12&&d>=1&&d<=31};
+function nameDate(n){const m=String(n).match(/(?:^|[^0-9])((?:19|20)\d\d)[-_.]?([01]\d)[-_.]?([0-3]\d)(?![0-9])/);return m&&validYMD(m[1],m[2],m[3])?`${m[1]}-${m[2]}-${m[3]}`:null}
+function fileDate(f){const t=f.lastModified;if(!t||Date.now()-t<2*864e5)return null;const d=new Date(t);const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return validYMD(y,m,dd)?`${y}-${m}-${dd}`:null}
+async function photoDate(f){const e=await exifDate(f);if(e)return[e,'info'];const n=nameDate(f.name);if(n)return[n,'name'];const fd=fileDate(f);if(fd)return[fd,'file'];return[null,null]}
 async function decode(f){
   try{return await createImageBitmap(f,{imageOrientation:'from-image'})}catch(_){}
   const url=URL.createObjectURL(f);try{const im=new Image();im.src=url;await im.decode();return im}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
@@ -268,8 +272,8 @@ async function addFiles(list){
   let noDate=0,done=0;$('#prog').classList.remove('hide');$('#upErr').textContent='';
   let i=0;const worker=async()=>{while(i<files.length){const f=files[i++];try{
     const key=f.name+'|'+f.size;if(H.seen.has(key))continue;
-    const date=await exifDate(f);if(!date){noDate++;continue}
-    H.seen.add(key);H.photos.push({file:f,date,name:f.name});
+    const[date,src]=await photoDate(f);if(!date){noDate++;continue}
+    H.seen.add(key);H.photos.push({file:f,date,name:f.name,src});
   }catch(_){noDate++}finally{done++;$('#barFill').style.width=(done/files.length*100)+'%';libText()}}};
   await Promise.all([worker(),worker(),worker(),worker()]);
   const skipped=list.length-imgsIn.length,msgs=[];if(shots)msgs.push(`${shots} screenshots were left out.`);
@@ -278,7 +282,9 @@ async function addFiles(list){
 }
 function libText(){
   const n=H.photos.length;
-  if(n){const ds=H.photos.map(p=>p.date).sort();$('#lib').textContent=`${n} photos ready, from ${fmt(ds[0])} to ${fmt(ds[n-1])}. They stay on this device and are only sent, encrypted, to the person you play with.`}
+  if(n){const ds=H.photos.map(p=>p.date).sort();const c={info:0,name:0,file:0};H.photos.forEach(p=>c[p.src]=(c[p.src]||0)+1);
+    const how=[c.info&&`${c.info} from the photo\u2019s own date`,c.name&&`${c.name} from the file name`,c.file&&`${c.file} from the file\u2019s saved date (less reliable)`].filter(Boolean).join(', ');
+    $('#lib').textContent=`${n} photos ready, from ${fmt(ds[0])} to ${fmt(ds[n-1])}. Dates: ${how}. Photos stay on this device and are only sent, encrypted, to the person you play with.`}
   const ok=n>0&&clean($('#hName').value);
   $('#create').disabled=!ok;$('#createNote').textContent=ok?'You’ll get a link to send.':'Add your name and some photos first.';
 }
